@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-
 import numpy as np
-
+import pickle
+import csv
 
 
 def get_sensitivity(spad, T):
@@ -41,12 +41,19 @@ def get_sensitivity(spad, T):
 
 
 
+def to_csv(fin="./.spadcompare.pickle",fout="./csv_out.csv"):
+    with open("fname", "rb") as f:
+        spads = pickle.load(f)
 
-
-
-
-
-
+    with open("./csv_out.csv", "w") as f:
+        titlerow = list(spads[0].keys())
+        writer = csv.writer(f)
+        writer.writerow(titlerow)
+        for spad in spads:
+            row_out = []
+            for key in spad.keys():
+                row_out.append(spad[key])
+            writer.writerow(row_out)
 
 
 def is_saturated(Ns, T, spad):
@@ -75,3 +82,10 @@ def get_pwr_penalty(rsb,scheme="OOK"):
         return a * np.exp(b * rsb) + b * np.exp(d * rsb) + k
     elif rsb >= 2:
         return p1*rsb + p2
+
+
+
+
+if __name__ == "__main__":
+    print("this file is not to be run directly - please import as use that way")
+    exit()
