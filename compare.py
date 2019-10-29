@@ -5,6 +5,8 @@ import pickle
 import numpy as np
 from scipy import constants
 import matplotlib.pyplot as plt
+import spadtools
+
 
 wavelength = 420 * 10**(-9)
 Ep = constants.h * constants.c / wavelength
@@ -35,13 +37,14 @@ for name, cost, area, pitch, numspad, deadtime, op_width, pde, peakwavelength in
     spads.append(spad)
 
 
+target_ber = np.exp(-5)
+
 for i, spad in enumerate(spads):
     ## 3.13 long thesis
     num = spad["numspad"]
     alpha = spad["pde"] * spad["area"]/Ep
     T     = 1  # observation time... (1 sec)?
     tau   = spad["deadtime"]
-    counts = num * alpha * T * (L + Ldark) / (1 + alpha * tau * (L+Ldark))
     asymptote_counts = T * num / tau
     spad["max_count"] = asymptote_counts
 
@@ -50,6 +53,18 @@ for i, spad in enumerate(spads):
 
 
 
+    print("\nSPAD",i+1, spad["name"],"\n==================")
+
+    spad["sensitivity"] = None
+    for numgig in np.linspace(1,50,10000):
+        symbol_time = 1 / (numgig * 10**9) # 10Gbps
+        old_sensitivity = spad["sensitivity"]
+        spad["sensitivity"] = spadtools.get_sensitivity(spad, symbol_time, target_ber)
+        if spad["sensitivity"] is None:
+            print(numgig, "Gbps...", old_sensitivity)
+            break
+    else:
+        print("Data Rate > 50 Gbps")
 
 
 with open("./.spadcompare.pickle", "wb") as f:
