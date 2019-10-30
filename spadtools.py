@@ -6,21 +6,25 @@ import csv
 from scipy import constants
 import matplotlib.pyplot as plt
 
+
 def get_sensitivity(spad, T, target_BER):
     # input A, FF, PDE(eff) = PDE_max, tdead, tpulse, BER_target, Nspad)
-    FF = 1 ## do we even have a filling factor ?????
+    FF = 0.1  ## do we even have a filling factor ?????
     A = spad["area"] * 10 ** -6 ## we want this in mm2
     PDE_max = spad["pde"]
     Nspad = spad["numspad"]
     tdead = spad["deadtime"]
+    rsb = 1 / (T*spad["bandwidth"])
 
-    rsb = 1/ (T*spad["bandwidth"])
+    # Initialise Variables
     old_PDE = None
+    PDE_eff = PDE_max
+    itervar = 0
 
-    PDE = PDE_max
     while True:
-        # get Nb from equation 6.1: (BACKGROUND COUNTS..)
-        Nb = PDE/FF * T * A * 1.5 * 10**9
+        itervar += 1
+
+        Nb = get_background(PDE_eff, FF, T, A)
 
         # find number of SPADs that will fire within single symbol duration, bit one:
         Ns0 = get_ns0(target_BER, Nb)
@@ -34,11 +38,11 @@ def get_sensitivity(spad, T, target_BER):
 
         if old_PDE is not None:
             frac_difference = np.abs(PDE_eff - old_PDE) / PDE_eff
-            if frac_difference < 0.01: # changed less than a percent ?
+            if frac_difference < 10**-10: # changed less than a percent ?
                 intensity = get_intensity(Ns0, T, spad)
                 break
 
-        if is_saturated(Ns, T, spad):
+        if is_saturated(Ns, Nb, T, spad):
             return None
 
         old_PDE = PDE_eff
@@ -46,15 +50,22 @@ def get_sensitivity(spad, T, target_BER):
     return (intensity, (Ns0, Ns))
 
 
+def get_background(PDE_eff, FF, T, A):
+    # get Nb from equation 6.1: (BACKGROUND COUNTS FOR A SPAD IN SYMBOL PERIOD T)
+    Nb = (PDE_eff/FF) * T * A * 1.5 * 10**9
+    return Nb
 
-def get_ns0(BER, background):
-    if background < 2:
+
+def get_ns0(BER, background): #TODO Add Gaussian and Poisson models.
+    if background < 0.01:
         ## use poisson limit
         return - np.log(2 * BER)
+    elif background < 2:
+        ## use poisson model
+        raise Exception("Unimplemented")
     else:
         ## use gaussian model
-        raise Exception("unimplemented")
-
+        raise Exception("Unimplemented")
 
 
 def get_intensity(count, T, spad):
@@ -81,7 +92,7 @@ def pickle_to_csv(fin="./.spadcompare.pickle",fout="./csv_out.csv"):
 
 
 def spads_to_csv(spads,fout="./csv_out.csv"):
-    with open("./csv_out.csv", "w") as f:
+    with open(fout, "w") as f:
         titlerow = list(spads[0].keys())
         writer = csv.writer(f)
         writer.writerow(titlerow)
@@ -92,9 +103,30 @@ def spads_to_csv(spads,fout="./csv_out.csv"):
             writer.writerow(row_out)
 
 
-def is_saturated(Ns, T, spad):
+def csv_to_spads(fin="./parameters.csv"):
+    spads = []
+    with open(fin, "r") as f:
+        reader = csv.reader(f)
+        for i, row in enumerate(reader):
+            if i is not 0:
+                spad = {}
+                spad["name"] = row[0]
+                spad["cost"] = row[1]
+                spad["area"] = float(row[2])
+                spad["pitch"]  = float(row[3])
+                spad["numspad"] = int(row[4])
+                spad["deadtime"] = float(row[5])
+                spad["pulsetime"] = float(row[6])
+                spad["pde"] = float(row[7])
+                spad["peakwavelength"] = float(row[8])
+                spad["photon_energy"] = float(row[9])
+                spads.append(spad)
+    return spads
+
+
+def is_saturated(Ns, Nb,  T, spad):
     maxN = spad["max_count"] * T
-    if Ns > maxN:
+    if (Ns + Nb) > maxN:
         return True
     else:
         return False
@@ -118,6 +150,32 @@ def get_pwr_penalty(rsb,scheme="OOK"):
         return (a * np.exp(b * rsb) + c * np.exp(d * rsb) + k)
     elif rsb >= 2:
         return p1*rsb + p2
+
+
+def get_max_counts(spad):
+    #3.13 long thesis
+    num = spad["numspad"]
+    alpha = spad["pde"] * spad["area"]/spad["photon_energy"]
+    T     = 1  # observation time... (1 sec)?
+    tau   = spad["deadtime"]
+    asymptote_counts = T * num / tau
+    spad["max_count"] = asymptote_counts
+
+
+def get_bandwidth(spad, p):
+    spad["bandwidth"] = -np.log(1-p) / (2 * np.pi * spad["pulsetime"])
+
+
+def insensity_to_counts(spad, L, Ldark):
+    #3.13 long thesis
+    num = spad["numspad"]
+    alpha = spad["pde"] * spad["area"]/Ep
+    T     = 1  # observation time... (1 sec)?
+    tau   = spad["deadtime"]
+    counts = num * alpha * T * (L + Ldark) / (1 + alpha * tau * (L+Ldark))
+    asymptote_counts = T * num / tau
+    spad["max_count"] = asymptote_counts
+    return counts
 
 
 if __name__ == "__main__":
