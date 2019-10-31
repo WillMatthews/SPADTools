@@ -4,24 +4,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import spadtools
 
+PLOT_RELATIVE = (False, 1)
 TARGET_BER = 10**-3
 SEARCH_SPACE = np.linspace(0.5, 500, 100000)
 
-print(spadtools.get_ns0(TARGET_BER, 0))
+print("\n"*8, "{0:.2f}".format(spadtools.get_ns0(TARGET_BER, 0)), "photons typically required at Poisson Limit")
 
-def main():
 
-    spads = spadtools.csv_to_spads(fin="./parameters.csv")
-
+def process_spads(spads):
     for i, spad in enumerate(spads):
 
         spadtools.get_max_counts(spad)
         p = 0.99 # ???? This is "pulse falling percentage" see Long's thesis 109
-        spadtools.get_bandwidth(spad,p)
+        spadtools.get_bandwidth(spad, p)
 
         print("\nSPAD", spad["name"],"\n==================")
 
-        print('{0:.2f}'.format((spad["max_count"] / spadtools.get_ns0(TARGET_BER, 0))*10**-9), "GRUBBY HACK")
+        print('{0:.2f}'.format((spad["max_count"] / spadtools.get_ns0(TARGET_BER, 0))*10**-9), "Gbps... NO ISI UPPER BOUND")
         spad["hack_data_rate"] = (spad["max_count"] / spadtools.get_ns0(TARGET_BER, 0))*10**-9
         spad["sensitivity"] = None
         for numgig in SEARCH_SPACE:
@@ -30,7 +29,7 @@ def main():
             spad["sensitivity"] = spadtools.get_sensitivity(spad, symbol_time, TARGET_BER)
             if spad["sensitivity"] is None:
                 if old_sensitivity is not None:
-                    print('{0:.2f}'.format(numgig), "Gbps...", old_sensitivity)
+                    print('{0:.2f}'.format(numgig), "Gbps...", "{0:.2f}".format(old_sensitivity[1][1]),"photons per bit one")
                     spad["max_data_rate"] = numgig
                     spad["sensitivity"] = old_sensitivity
                 else:
@@ -40,32 +39,44 @@ def main():
             print("Data Rate >", max(SEARCH_SPACE),"Gbps")
 
 
-    spadtools.spads_to_csv(spads)
-
+def plot_performance(spads):
     hackrates, realrates = [], []
     names = []
     photons, intensity = [], []
+
+    spad = spads[PLOT_RELATIVE[1]-1]
+    initial = (spad["sensitivity"][0], spad["sensitivity"][1][1], spad["hack_data_rate"], spad["max_data_rate"])
+
     for i, spad in enumerate(spads):
-        hackrates.append(spad["hack_data_rate"])
-        realrates.append(spad["max_data_rate"])
         names.append(spad["name"])
-        photons.append(spad["sensitivity"][1][1])
-        #intensity.append(spad["sensitivity"][0])
-        if i == 0:
-            intense = spad["sensitivity"][0]
-            intensity.append(1)
+        if PLOT_RELATIVE[0]:
+            if i == PLOT_RELATIVE[1] - 1:
+                intensity.append(1)
+                hackrates.append(1)
+                realrates.append(1)
+                photons.append(1)
+            else:
+                hackrates.append(spad["hack_data_rate"] / initial[2])
+                realrates.append(spad["max_data_rate"] / initial[3])
+                photons.append(spad["sensitivity"][1][1] / initial[1])
+                intensity.append(spad["sensitivity"][0] / initial[0])
         else:
-            intensity.append(spad["sensitivity"][0]/intense)
+            hackrates.append(spad["hack_data_rate"])
+            realrates.append(spad["max_data_rate"])
+            photons.append(spad["sensitivity"][1][1])
+
+            intensity.append(spad["sensitivity"][0])
 
     x = np.array([x for x in range(len(hackrates))])
     ax = plt.subplot(111)
-    print(hackrates)
-    print(realrates)
     ax.bar(x-0.2, hackrates, width=0.4, color='b', align='center', label="No ISI")
     ax.bar(x+0.2, realrates, width=0.4, color='g', align='center', label="With ISI PP")
     plt.xticks(x, names)
     plt.xlabel("Device")
-    plt.ylabel("Data Rate (Gbps)")
+    if PLOT_RELATIVE[0]:
+        plt.ylabel("Data Rate relative to SPAD " + str(PLOT_RELATIVE[1]))
+    else:
+        plt.ylabel("Data Rate (Gbps)")
     plt.title("SiPM Predicted Data Rates")
     plt.grid()
     plt.legend()
@@ -73,7 +84,10 @@ def main():
     plt.figure()
     plt.bar(x, photons, width=0.4, color="r", align="center",)
     plt.xlabel("Device")
-    plt.ylabel("Photons per Bit (ONE)")
+    if PLOT_RELATIVE[0]:
+        plt.ylabel("Photons per Bit relative to SPAD " + str(PLOT_RELATIVE[1]))
+    else:
+        plt.ylabel("Photons per Bit (ONE)")
     plt.title("SiPM Predicted Photons per Bit")
     plt.grid()
     plt.xticks(x, names)
@@ -81,14 +95,23 @@ def main():
     plt.figure()
     plt.bar(x, intensity, width=0.4, color="g", align="center",)
     plt.xlabel("Device")
-    plt.ylabel("Light Intensity Wm^-2")
+    if PLOT_RELATIVE[0]:
+        plt.ylabel("Light intensity relative to SPAD " + str(PLOT_RELATIVE[1]))
+    else:
+        plt.ylabel("Light Intensity Wm^-2")
     plt.title("SiPM Predicted Required Light Intensity")
     plt.grid()
     plt.xticks(x, names)
 
+    plt.show(block=False)
 
-    plt.show()
 
+def main():
+    spads = spadtools.csv_to_spads(fin="./parameters.csv")
+    process_spads(spads)
+    spadtools.spads_to_csv(spads)
+    plot_performance(spads)
+    input("Press any Key to Continue...")
 
 
 if __name__ == "__main__":
