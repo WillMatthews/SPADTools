@@ -21,7 +21,7 @@ spads = []
 itervar = 1
 for name, cost, area, pitch, numspad, deadtime, op_width, pde, peakwavelength in zip(names, costs, areas, pitches, numspads, deadtimes, op_widths, pdes, peakwls):
     spad = {}
-    spad["name"] = name
+    spad["name"] = str(itervar) + ": " + name
     spad["cost"] = cost
     spad["area"] = area * 10**(-6) # m^2
     spad["pitch"]  = pitch
