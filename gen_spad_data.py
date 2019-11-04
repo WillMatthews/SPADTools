@@ -7,7 +7,7 @@ import numpy as np
 import spadtools
 
 
-names     = ["J(TSV)*","J*", "J", "J", "C*", "C", "C", "C", "C", "C", "C", "C"]
+names     = ["J(TSV)*","J**", "J", "J*", "C*", "C", "C", "C", "C", "C", "C", "C"]
 costs     = [57.2, 19.30, -1, -1, 43.38, -1, -1, -1, -1, -1, -1] # gbp
 areas     = [9, 9, 16, 36, 1, 1, 1, 13, 3, 3, 6] # mm^2
 pitches   = [20, 35, 35, 35, 10, 20, 35, 20, 35, 50, 35]

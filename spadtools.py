@@ -7,7 +7,7 @@ from scipy import constants
 import matplotlib.pyplot as plt
 
 
-def get_sensitivity(spad, T, target_BER):
+def get_sensitivity(spad, T, target_BER, scheme="OOK"):
     # input A, FF, PDE(eff) = PDE_max, tdead, tpulse, BER_target, Nspad)
     FF = 0.1  ## do we even have a filling factor ?????
     A = spad["area"] * 10 ** -6 ## we want this in mm2
@@ -29,7 +29,7 @@ def get_sensitivity(spad, T, target_BER):
         # find number of SPADs that will fire within single symbol duration, bit one:
         Ns0 = get_ns0(target_BER, Nb)
 
-        PP = get_pwr_penalty(rsb)
+        PP = get_pwr_penalty(rsb, scheme=scheme)
         Ns = PP * Ns0
 
         # get PDE_eff:
@@ -142,11 +142,18 @@ def get_pwr_penalty(rsb,scheme="OOK"):
         p1 = 0.1658
         p2 = 0.827
     elif scheme == "4PAM":
-        raise Exception
+        a = 0.088
+        b = -1.383
+        c = 0.9122
+        d = 0.1086
+        k = -0.01
+        p1 = 0.1902
+        p2 = 0.7765
 
-    if rsb < 1:
+
+    if rsb < 0:
         return 1
-    elif rsb < 2 and rsb > 1:
+    elif rsb < 2:
         return (a * np.exp(b * rsb) + c * np.exp(d * rsb) + k)
     elif rsb >= 2:
         return p1*rsb + p2

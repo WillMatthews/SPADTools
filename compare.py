@@ -6,7 +6,7 @@ import spadtools
 
 PLOT_RELATIVE = (False, 1)
 TARGET_BER = 10**-3
-SEARCH_SPACE = np.linspace(0.5, 500, 100000)
+SEARCH_SPACE = np.linspace(0.1, 500, 100000)
 
 print("\n"*8, "{0:.2f}".format(spadtools.get_ns0(TARGET_BER, 0)), "photons typically required at Poisson Limit")
 
@@ -15,7 +15,7 @@ def process_spads(spads):
     for i, spad in enumerate(spads):
 
         spadtools.get_max_counts(spad)
-        p = 0.99 # ???? This is "pulse falling percentage" see Long's thesis 109
+        p = 0.5 # ???? This is "pulse falling percentage" see Long's thesis 109
         spadtools.get_bandwidth(spad, p)
 
         print("\nSPAD", spad["name"],"\n==================")
