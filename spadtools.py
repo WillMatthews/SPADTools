@@ -19,18 +19,18 @@ def get_rate_vs_photons(spad, photon_range, search_space, target_ber=10**-3):
 
         print("\nSPAD", spad["name"],"\n==================")
 
-        print('{0:.2f}'.format((spad["max_count"] / get_ns0(target_ber, 0))*10**-9), "Gbps... NO ISI UPPER BOUND")
-        spad["intensity"][ppb]["hack_data_rate"] = (spad["max_count"] / get_ns0(target_ber, 0))*10**-9
+        print('{0:.2f}'.format(((spad["max_count"] / ppb))*10**-9), "Gbps... NO ISI UPPER BOUND")
+        spad["intensity"][ppb]["hack_data_rate"] = (spad["max_count"] / ppb)*10**-9
         spad["intensity"][ppb]["sensitivity"] = None
         for numgig in search_space:
             symbol_time = 1 / (numgig * 10**9) # 10Gbps
             old_sensitivity = spad["intensity"][ppb]["sensitivity"]
-            spad["intensity"][ppb]["sensitivity"] = get_sensitivity(spad, symbol_time, target_ber)
+            spad["intensity"][ppb]["sensitivity"] = get_sensitivity(spad, symbol_time, target_ber, custom=True, customcount=ppb)
             if spad["intensity"][ppb]["sensitivity"] is None:
                 if old_sensitivity is not None:
                     print('{0:.2f}'.format(numgig), "Gbps...", "{0:.2f}".format(old_sensitivity[1][1]),"photons per bit one")
-                    spad["intensity"]["ppb"]["max_data_rate"] = numgig
-                    spad["intensity"]["ppb"]["sensitivity"] = old_sensitivity
+                    spad["intensity"][ppb]["max_data_rate"] = numgig
+                    spad["intensity"][ppb]["sensitivity"] = old_sensitivity
                 else:
                     print("Data Rate <", min(search_space),"Gbps")
                 break
@@ -65,7 +65,7 @@ def get_max_data_rate(spad, search_space, target_ber=10**-3):
         print("Data Rate >", max(search_space),"Gbps")
 
 
-def get_sensitivity(spad, T, target_BER, scheme="OOK"):
+def get_sensitivity(spad, T, target_BER, scheme="OOK", custom=False, customcount=0):
     # input A, FF, PDE(eff) = PDE_max, tdead, tpulse, BER_target, Nspad)
     FF = 0.1  ## do we even have a filling factor ?????
     A = spad["area"] * 10 ** -6 ## we want this in mm2
@@ -85,7 +85,7 @@ def get_sensitivity(spad, T, target_BER, scheme="OOK"):
         Nb = get_background(PDE_eff, FF, T, A)
 
         # find number of SPADs that will fire within single symbol duration, bit one:
-        Ns0 = get_ns0(target_BER, Nb)
+        Ns0 = get_ns0(target_BER, Nb, custom=custom, customcount=customcount)
 
         PP = get_pwr_penalty(rsb, scheme=scheme)
         Ns = PP * Ns0
