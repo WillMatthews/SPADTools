@@ -7,6 +7,64 @@ from scipy import constants
 import matplotlib.pyplot as plt
 
 
+
+def get_rate_vs_photons(spad, photon_range, search_space, target_ber=10**-3):
+
+    spad["intensity"] = {}
+    for ppb in photon_range:
+        spad["intensity"][ppb] = {}
+        get_max_counts(spad)
+        p = 0.5 # ???? This is "pulse falling percentage" see Long's thesis 109
+        get_bandwidth(spad, p)
+
+        print("\nSPAD", spad["name"],"\n==================")
+
+        print('{0:.2f}'.format((spad["max_count"] / get_ns0(target_ber, 0))*10**-9), "Gbps... NO ISI UPPER BOUND")
+        spad["intensity"][ppb]["hack_data_rate"] = (spad["max_count"] / get_ns0(target_ber, 0))*10**-9
+        spad["intensity"][ppb]["sensitivity"] = None
+        for numgig in search_space:
+            symbol_time = 1 / (numgig * 10**9) # 10Gbps
+            old_sensitivity = spad["intensity"][ppb]["sensitivity"]
+            spad["intensity"][ppb]["sensitivity"] = get_sensitivity(spad, symbol_time, target_ber)
+            if spad["intensity"][ppb]["sensitivity"] is None:
+                if old_sensitivity is not None:
+                    print('{0:.2f}'.format(numgig), "Gbps...", "{0:.2f}".format(old_sensitivity[1][1]),"photons per bit one")
+                    spad["intensity"]["ppb"]["max_data_rate"] = numgig
+                    spad["intensity"]["ppb"]["sensitivity"] = old_sensitivity
+                else:
+                    print("Data Rate <", min(search_space),"Gbps")
+                break
+        else:
+            break
+
+
+def get_max_data_rate(spad, search_space, target_ber=10**-3):
+
+    get_max_counts(spad)
+    p = 0.5 # ???? This is "pulse falling percentage" see Long's thesis 109
+    get_bandwidth(spad, p)
+
+    print("\nSPAD", spad["name"],"\n==================")
+
+    print('{0:.2f}'.format((spad["max_count"] / get_ns0(target_ber, 0))*10**-9), "Gbps... NO ISI UPPER BOUND")
+    spad["hack_data_rate"] = (spad["max_count"] / get_ns0(target_ber, 0))*10**-9
+    spad["sensitivity"] = None
+    for numgig in search_space:
+        symbol_time = 1 / (numgig * 10**9) # 10Gbps
+        old_sensitivity = spad["sensitivity"]
+        spad["sensitivity"] = get_sensitivity(spad, symbol_time, target_ber)
+        if spad["sensitivity"] is None:
+            if old_sensitivity is not None:
+                print('{0:.2f}'.format(numgig), "Gbps...", "{0:.2f}".format(old_sensitivity[1][1]),"photons per bit one")
+                spad["max_data_rate"] = numgig
+                spad["sensitivity"] = old_sensitivity
+            else:
+                print("Data Rate <", min(search_space),"Gbps")
+            break
+    else:
+        print("Data Rate >", max(search_space),"Gbps")
+
+
 def get_sensitivity(spad, T, target_BER, scheme="OOK"):
     # input A, FF, PDE(eff) = PDE_max, tdead, tpulse, BER_target, Nspad)
     FF = 0.1  ## do we even have a filling factor ?????
@@ -56,16 +114,19 @@ def get_background(PDE_eff, FF, T, A):
     return Nb
 
 
-def get_ns0(BER, background): #TODO Add Gaussian and Poisson models.
-    if background < 0.01:
-        ## use poisson limit
-        return - np.log(2 * BER)
-    elif background < 2:
-        ## use poisson model
-        raise Exception("Unimplemented")
+def get_ns0(BER, background, custom=False, customcount=0): #TODO Add Gaussian and Poisson models.
+    if not custom:
+        if background < 0.01:
+            ## use poisson limit
+            return - np.log(2 * BER)
+        elif background < 2:
+            ## use poisson model
+            raise Exception("Unimplemented")
+        else:
+            ## use gaussian model
+            raise Exception("Unimplemented")
     else:
-        ## use gaussian model
-        raise Exception("Unimplemented")
+        return customcount
 
 
 def get_intensity(count, T, spad):
@@ -150,7 +211,6 @@ def get_pwr_penalty(rsb,scheme="OOK"):
         p1 = 0.1902
         p2 = 0.7765
 
-
     if rsb < 0:
         return 1
     elif rsb < 2:
@@ -192,7 +252,6 @@ if __name__ == "__main__":
     pps = [get_pwr_penalty(r) for r in rsbs]
     plt.plot(rsbs, pps)
     plt.show()
-
 
     print("this file is not to be run directly - please import as use that way")
     exit()

@@ -44,10 +44,10 @@ xmax = 10**-5
 L = np.linspace(0, xmax, 10000)
 for i, spad in enumerate(spads):
     ## 3.13 long thesis
-    num = spad["numspad"]
-    alpha = spad["pde"] * spad["area"]/Ep
-    T     = 1  # observation time... (1 sec)?
-    tau   = spad["deadtime"]
+    num    = spad["numspad"]
+    alpha  = spad["pde"] * spad["area"]/Ep
+    T      = 1  # observation time... (1 sec)?
+    tau    = spad["deadtime"]
     counts = num * alpha * T * (L + Ldark) / (1 + alpha * tau * (L+Ldark))
     asymptote_counts = T * num / tau
     spad["max_count"] = asymptote_counts

@@ -11,32 +11,10 @@ SEARCH_SPACE = np.linspace(0.1, 500, 100000)
 print("\n"*8, "{0:.2f}".format(spadtools.get_ns0(TARGET_BER, 0)), "photons typically required at Poisson Limit")
 
 
+
 def process_spads(spads):
     for i, spad in enumerate(spads):
-
-        spadtools.get_max_counts(spad)
-        p = 0.5 # ???? This is "pulse falling percentage" see Long's thesis 109
-        spadtools.get_bandwidth(spad, p)
-
-        print("\nSPAD", spad["name"],"\n==================")
-
-        print('{0:.2f}'.format((spad["max_count"] / spadtools.get_ns0(TARGET_BER, 0))*10**-9), "Gbps... NO ISI UPPER BOUND")
-        spad["hack_data_rate"] = (spad["max_count"] / spadtools.get_ns0(TARGET_BER, 0))*10**-9
-        spad["sensitivity"] = None
-        for numgig in SEARCH_SPACE:
-            symbol_time = 1 / (numgig * 10**9) # 10Gbps
-            old_sensitivity = spad["sensitivity"]
-            spad["sensitivity"] = spadtools.get_sensitivity(spad, symbol_time, TARGET_BER)
-            if spad["sensitivity"] is None:
-                if old_sensitivity is not None:
-                    print('{0:.2f}'.format(numgig), "Gbps...", "{0:.2f}".format(old_sensitivity[1][1]),"photons per bit one")
-                    spad["max_data_rate"] = numgig
-                    spad["sensitivity"] = old_sensitivity
-                else:
-                    print("Data Rate <", min(SEARCH_SPACE),"Gbps")
-                break
-        else:
-            print("Data Rate >", max(SEARCH_SPACE),"Gbps")
+        spadtools.get_max_data_rate(spad, SEARCH_SPACE)
 
 
 def plot_performance(spads):
