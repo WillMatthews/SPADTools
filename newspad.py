@@ -104,7 +104,8 @@ def plot_performance(spads):
     plt.grid()
     plt.xticks(x, names)
 
-    plt.show(block=False)
+    plt.draw()
+    plt.pause(0.001)
 
 
 def Jseries(pixels):
@@ -142,6 +143,36 @@ def Bseries():
 
 
 
+def plot_satcurves(spads_all):
+    plt.figure()
+    Ldark = 0 # assume perfect zero dark count
+    xmax = 10**-5
+    L = np.linspace(0, xmax, 10000)
+    for i, spad in enumerate(spads_all):
+        ## 3.13 long thesis
+        num = spad["numspad"]
+        alpha = spad["pde"] * spad["area"]/(3 * 1.6*10**-19)
+        T     = 1  # observation time... (1 sec)?
+        tau   = spad["deadtime"]
+        counts = num * alpha * T * (L + Ldark) / (1 + alpha * tau * (L+Ldark))
+        asymptote_counts = T * num / tau
+        spad["max_count"] = asymptote_counts
+        spad["L"] = L
+        spad["Ldark"] = Ldark
+        spad["counts"] = counts
+        col=plt.cm.nipy_spectral((i+1)/len(spads_all))
+        plt.plot(L, counts, c=col, label=spad["name"])
+        plt.hlines(asymptote_counts, 0, xmax, color=col, linestyle="--")
+    plt.grid()
+    plt.title("Count rate vs intensity of incident light on SiPMs")
+    plt.legend()
+    plt.show()
+
+
+
+
+
+
 
 def main():
     spads = spadtools.csv_to_spads(fin="./parameters.csv")
@@ -153,6 +184,7 @@ def main():
     process_spads(spads)
     spadtools.spads_to_csv(spads)
     plot_performance(spads)
+    plot_satcurves(spads)
     input("Press any Key to Continue...")
 
 
