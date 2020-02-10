@@ -17,6 +17,7 @@ op_widths = [1.4, 1.5, 1.7, 3, 0.6, 0.6, 0.6, 1.5, 1.5, 1.5, 3.2] #nano
 pdes      = [38, 50, 50, 50, 18, 31, 41, 31, 41, 47, 41] # pct
 peakwls   = [420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420] #nano
 
+
 spads = []
 itervar = 1
 for name, cost, area, pitch, numspad, deadtime, op_width, pde, peakwavelength in zip(names, costs, areas, pitches, numspads, deadtimes, op_widths, pdes, peakwls):
@@ -45,7 +46,7 @@ L = np.linspace(0, xmax, 10000)
 for i, spad in enumerate(spads):
     ## 3.13 long thesis
     num    = spad["numspad"]
-    alpha  = spad["pde"] * spad["area"]/Ep
+    alpha  = spad["pde"] * spad["area"] / Ep
     T      = 1  # observation time... (1 sec)?
     tau    = spad["deadtime"]
     counts = num * alpha * T * (L + Ldark) / (1 + alpha * tau * (L+Ldark))
@@ -61,4 +62,3 @@ plt.grid()
 plt.title("Count rate vs intensity of incident light on SiPMs")
 plt.legend()
 plt.show()
-

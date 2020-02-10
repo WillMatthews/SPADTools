@@ -130,7 +130,7 @@ def get_ns0(BER, background, custom=False, customcount=0): #TODO Add Gaussian an
 
 
 def get_intensity(count, T, spad):
-    wavelength = 420 * 10**(-9)
+    wavelength = 405 * 10**(-9)
     Ep = constants.h * constants.c / wavelength
     alpha = spad["pde"] * spad["area"]/Ep
     Lhat = (1/alpha) * 1/( (spad["numspad"] * T / count) - spad["deadtime"]  ) # L + Ldark
@@ -170,18 +170,21 @@ def csv_to_spads(fin="./parameters.csv"):
         reader = csv.reader(f)
         for i, row in enumerate(reader):
             if i is not 0:
-                spad = {}
-                spad["name"] = row[0]
-                spad["cost"] = row[1]
-                spad["area"] = float(row[2])
-                spad["pitch"]  = float(row[3])
-                spad["numspad"] = int(row[4])
-                spad["deadtime"] = float(row[5])
-                spad["pulsetime"] = float(row[6])
-                spad["pde"] = float(row[7])
-                spad["peakwavelength"] = float(row[8])
-                spad["photon_energy"] = float(row[9])
-                spads.append(spad)
+                try:
+                    spad = {}
+                    spad["name"] = row[0]
+                    spad["cost"] = row[1]
+                    spad["area"] = float(row[2])
+                    spad["pitch"]  = float(row[3])
+                    spad["numspad"] = int(row[4])
+                    spad["deadtime"] = float(row[5])
+                    spad["pulsetime"] = float(row[6])
+                    spad["pde"] = float(row[7])
+                    spad["peakwavelength"] = float(row[8])
+                    spad["photon_energy"] = float(row[9])
+                    spads.append(spad)
+                except IndexError:
+                    print("csv_to_spads encountered IndexError")
     return spads
 
 
@@ -243,6 +246,21 @@ def insensity_to_counts(spad, L, Ldark):
     asymptote_counts = T * num / tau
     spad["max_count"] = asymptote_counts
     return counts
+
+
+def get_safe_area(illum_area, flux_rx):
+    #illum_area metres squared transmit area
+    #flux_rx in watts per metre squared
+    tx_power = illum_area * flux_rx
+    print("TX Power:", tx_power, "W")
+
+    max_flux = 30/30000 # 30/t for MPE (WATTS PER METRE SQUARED)
+    print("Max Allowed Power at a Pupil below MPE is:", max_flux, "Wm^-2")
+    pupil_area = np.pi * ((0.5*10**-3)**2)/5 # piD^2/4
+
+    tx_area = tx_power / max_flux
+    print("TX Area:", tx_area * 10**6, "cm^2")
+    return tx_area
 
 
 if __name__ == "__main__":
