@@ -172,17 +172,20 @@ def plot_satcurves(spads_all):
 def intensity2ppb(spads):
     for spad in spads:
         area = spad["area"]
-        watts_per_metresq = spad["sensitivity"][0]
+        symbol_energy_m2 = spad["sensitivity"][0]
         photons_per_bit = spad["sensitivity"][1][1]
         photon_energy = spad["photon_energy"]
         symbol_time = 1/(spad["max_data_rate"]*10**9)
-        photons_per_metresq = symbol_time * watts_per_metresq/photon_energy
+        watts_per_metresq = (1/symbol_time) * symbol_energy_m2
+        photons_per_metresq = (1/symbol_time) * symbol_energy_m2/photon_energy
 
-        print(spad["name"], "\t", watts_per_metresq*1E9*(1E-4) , "nW/cm2\t", photons_per_metresq, "photons per msq per symbol time")
+        #print(spad["name"], "\t", watts_per_metresq*1E9*(1E-4) , "nW/cm2\t", photons_per_metresq, "photons per msq per symbol time")
+        print(spad["name"], "\t", "{:.4e}".format(watts_per_metresq*1E3*(1E-4)) , "mW/cm2\t", symbol_energy_m2/photon_energy*spad["area"], "photons per msq per symbol time")
+        #print("Ep = ", photon_energy, "\t\tTs = ", symbol_time)
 
 
 def main():
-    wavelength = 375E-9
+    wavelength = 405E-9
     spads = spadtools.csv_to_spads(fin="./parameters.csv")
 
     spads.append(Jseries(16))
