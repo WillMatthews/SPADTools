@@ -130,8 +130,7 @@ def get_ns0(BER, background, custom=False, customcount=0): #TODO Add Gaussian an
 
 
 def get_intensity(count, T, spad):
-    wavelength = 420 * 10**(-9)
-    Ep = constants.h * constants.c / wavelength
+    Ep = spad["photon_energy"]
     alpha = spad["pde"] * spad["area"]/Ep
     Lhat = (1/alpha) * 1/( (spad["numspad"] * T / count) - spad["deadtime"]  ) # L + Ldark
     return Lhat
@@ -233,7 +232,7 @@ def get_bandwidth(spad, p):
     spad["bandwidth"] = -np.log(1-p) / (2 * np.pi * spad["pulsetime"])
 
 
-def insensity_to_counts(spad, L, Ldark):
+def intensity_to_counts(spad, L, Ldark):
     #3.13 long thesis
     num = spad["numspad"]
     alpha = spad["pde"] * spad["area"]/Ep
