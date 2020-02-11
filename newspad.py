@@ -176,10 +176,11 @@ def plot_satcurves(spads_all):
 
 def main():
     spads = spadtools.csv_to_spads(fin="./parameters.csv")
-
     spads.append(Jseries(16))
     spads.append(Jseries(64))
     spads.append(Bseries())
+
+    spads = [spads[0], spads[1], spads[4]] #spads[0:6]
 
     process_spads(spads)
     spadtools.spads_to_csv(spads)
