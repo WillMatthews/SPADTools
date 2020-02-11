@@ -67,12 +67,13 @@ def get_max_data_rate(spad, search_space, target_ber=10**-3):
 
 def get_sensitivity(spad, T, target_BER, scheme="OOK", custom=False, customcount=0):
     # input A, FF, PDE(eff) = PDE_max, tdead, tpulse, BER_target, Nspad)
-    FF = 0.1  ## do we even have a filling factor ?????
-    A = spad["area"] * 10 ** -6 ## we want this in mm2
+    FF = 0.8  ## do we even have a filling factor ?????
+    A = spad["area"] #* 10 **-6 ## we want this in mm2
     PDE_max = spad["pde"]
     Nspad = spad["numspad"]
     tdead = spad["deadtime"]
     rsb = 1 / (T*spad["bandwidth"])
+    print(spad)
 
     # Initialise Variables
     old_PDE = None
@@ -97,11 +98,13 @@ def get_sensitivity(spad, T, target_BER, scheme="OOK", custom=False, customcount
         if old_PDE is not None:
             frac_difference = np.abs(PDE_eff - old_PDE) / PDE_eff
             if frac_difference < 10**-10: # changed less than a percent ?
-                intensity = get_intensity(Ns0, T, spad)
+                intensity = get_intensity(Ns, T, spad)
+                print(Ns, T, intensity)
                 break
 
         if is_saturated(Ns, Nb, T, spad):
-            return None
+            print(itervar, "IS SATURATED, NOT BREAKING")
+            #return None
 
         old_PDE = PDE_eff
 
@@ -115,26 +118,29 @@ def get_background(PDE_eff, FF, T, A):
 
 
 def get_ns0(BER, background, custom=False, customcount=0): #TODO Add Gaussian and Poisson models.
+    if background > 0.01:
+        print("Background count high!! Exercise caution with result")
+    return - np.log(2 * BER)
+
     if not custom:
         if background < 0.01:
             ## use poisson limit
             return - np.log(2 * BER)
         elif background < 2:
             ## use poisson model
-            raise Exception("Unimplemented")
+            raise Exception("Unimplemented!")
         else:
             ## use gaussian model
-            raise Exception("Unimplemented")
+            raise Exception("Unimplemented!")
     else:
         return customcount
 
 
 def get_intensity(count, T, spad):
-    wavelength = 420 * 10**(-9)
-    Ep = constants.h * constants.c / wavelength
+    Ep = spad["photon_energy"]
     alpha = spad["pde"] * spad["area"]/Ep
     Lhat = (1/alpha) * 1/( (spad["numspad"] * T / count) - spad["deadtime"]  ) # L + Ldark
-    return Lhat
+    return Lhat #  in watts per metre squared
 
 
 def pickle_to_csv(fin="./.spadcompare.pickle",fout="./csv_out.csv"):
@@ -170,18 +176,21 @@ def csv_to_spads(fin="./parameters.csv"):
         reader = csv.reader(f)
         for i, row in enumerate(reader):
             if i is not 0:
-                spad = {}
-                spad["name"] = row[0]
-                spad["cost"] = row[1]
-                spad["area"] = float(row[2])
-                spad["pitch"]  = float(row[3])
-                spad["numspad"] = int(row[4])
-                spad["deadtime"] = float(row[5])
-                spad["pulsetime"] = float(row[6])
-                spad["pde"] = float(row[7])
-                spad["peakwavelength"] = float(row[8])
-                spad["photon_energy"] = float(row[9])
-                spads.append(spad)
+                try:
+                    spad = {}
+                    spad["name"] = row[0]
+                    spad["cost"] = row[1]
+                    spad["area"] = float(row[2])
+                    spad["pitch"]  = float(row[3])
+                    spad["numspad"] = int(row[4])
+                    spad["deadtime"] = float(row[5])
+                    spad["pulsetime"] = float(row[6])
+                    spad["pde"] = float(row[7])
+                    spad["peakwavelength"] = float(row[8])
+                    spad["photon_energy"] = float(row[9])
+                    spads.append(spad)
+                except IndexError:
+                    print("csv_to_spads encountered IndexError")
     return spads
 
 
@@ -233,7 +242,7 @@ def get_bandwidth(spad, p):
     spad["bandwidth"] = -np.log(1-p) / (2 * np.pi * spad["pulsetime"])
 
 
-def insensity_to_counts(spad, L, Ldark):
+def intensity_to_counts(spad, L, Ldark):
     #3.13 long thesis
     num = spad["numspad"]
     alpha = spad["pde"] * spad["area"]/Ep
@@ -243,6 +252,21 @@ def insensity_to_counts(spad, L, Ldark):
     asymptote_counts = T * num / tau
     spad["max_count"] = asymptote_counts
     return counts
+
+
+def get_safe_area(illum_area, flux_rx):
+    #illum_area metres squared transmit area
+    #flux_rx in watts per metre squared
+    tx_power = illum_area * flux_rx
+    print("TX Power:", tx_power, "W")
+
+    max_flux = 30/30000 # 30/t for MPE (WATTS PER METRE SQUARED)
+    print("Max Allowed Power at a Pupil below MPE is:", max_flux, "Wm^-2")
+    pupil_area = np.pi * ((0.5*10**-3)**2)/5 # piD^2/4
+
+    tx_area = tx_power / max_flux
+    print("TX Area:", tx_area * 10**6, "cm^2")
+    return tx_area
 
 
 if __name__ == "__main__":
