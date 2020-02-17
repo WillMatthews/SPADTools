@@ -8,7 +8,7 @@ from lasersafety import get_mpe
 
 PLOT_RELATIVE = (False, 1)
 TARGET_BER = 10**-3
-SEARCH_SPACE = [0.5]
+SEARCH_SPACE = [0.5] #np.linspace(0.5, 50, 10000)
 
 print("\n"*8, "{0:.2f}".format(spadtools.get_ns0(TARGET_BER, 0)), "photons typically required at Poisson Limit")
 
@@ -176,8 +176,8 @@ def intensity2ppb(spads):
         photons_per_bit = spad["sensitivity"][1][1]
         photon_energy = spad["photon_energy"]
         watts_per_metresq = spad["sensitivity"][0]
-        symbol_energy_m2 = watts_per_metresq*symbol_time * area
-        photons_per_metresq = symbol_energy_m2/photon_energy
+        symbol_energy_m2 = watts_per_metresq * area
+        photons_per_metresq = symbol_time * symbol_energy_m2/photon_energy
 
 
         #print(area * symbol_time * spadtools.get_intensity(spad["sensitivity"][1][1], symbol_time, spad)/photon_energy)
@@ -185,6 +185,7 @@ def intensity2ppb(spads):
         #print(spad["name"], "\t", watts_per_metresq*1E9*(1E-4) , "nW/cm2\t", photons_per_metresq, "photons per msq per symbol time")
         print(spad["name"], "\t", "{:.4e}".format(watts_per_metresq*1E9*(1E-4)) , "nW/cm2\t", photons_per_metresq, "photons landing on spad per symbol time")
         print(spad["name"], "\t", "{:.4e}".format(watts_per_metresq), "Wm^-2")
+        print(spad["sensitivity"])
         #print("SymE = ", symbol_energy_m2)
 
 
@@ -199,11 +200,17 @@ def main():
     for spad in spads:
         spad["photon_energy"] = constants.h * constants.c / wavelength
 
+
+    #for spad in spads:
+    #    print("For DR of", print(SEARCH_SPACE[0]), "gbps. Assume 6.2 ppb")
+    #    print("Light Intensity Estimate LB=", (1/spad["area"]) * spad["photon_energy"]*6.2*SEARCH_SPACE[0]*10**9)
+
+
     process_spads(spads)
     spadtools.spads_to_csv(spads)
     intensity2ppb(spads)
     #plot_performance(spads)
-    #plot_satcurves(spads)
+    plot_satcurves(spads)
     input("Press any Key to Continue...")
 
 

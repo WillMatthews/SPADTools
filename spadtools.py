@@ -137,9 +137,16 @@ def get_ns0(BER, background, custom=False, customcount=0): #TODO Add Gaussian an
 
 
 def get_intensity(count, T, spad):
+
+    dtmult = spad["numspad"]
     Ep = spad["photon_energy"]
-    alpha = spad["pde"] * spad["area"]/Ep
-    Lhat = (1/alpha) * 1/( (spad["numspad"] * T / count) - spad["deadtime"]  ) # L + Ldark
+    alpha = spad["pde"] * spad["area"]/(Ep*spad["numspad"])
+    Lhat = (1/alpha) * 1/((spad["numspad"] * T / count) - spad["deadtime"]) # L + Ldark
+    #print("INTENSITY:", "dead",spad["deadtime"], "num",spad["numspad"])
+    #print("PDE",spad["pde"], "Ep",spad["photon_energy"],"A",spad["area"])
+    #print(ocount, Lhat, T, Lhat*spad["area"] * oT/Ep)
+    print("Est Pwr Long:", Lhat)
+    print("Est Pwr me:", (1/spad["area"]) * spad["photon_energy"]*count*(1/T))
     return Lhat #  in watts per metre squared
 
 
