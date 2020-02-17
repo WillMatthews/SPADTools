@@ -8,7 +8,7 @@ from lasersafety import get_mpe
 
 PLOT_RELATIVE = (False, 1)
 TARGET_BER = 10**-3
-SEARCH_SPACE = [0.5] #np.linspace(0.5, 50, 10000)
+SEARCH_SPACE = [0.5]# np.linspace(0.5, 50, 10000)
 
 print("\n"*8, "{0:.2f}".format(spadtools.get_ns0(TARGET_BER, 0)), "photons typically required at Poisson Limit")
 
@@ -143,16 +143,15 @@ def Bseries():
 def plot_satcurves(spads_all):
     plt.figure()
     Ldark = 0 # assume perfect zero dark count
-    xmax = 10**-5
+    xmax = 10**1
     L = np.linspace(0, xmax, 10000)
+    Ldark = 0
     for i, spad in enumerate(spads_all):
         ## 3.13 long thesis
+        counts = spadtools.intensity_to_counts(spad,L,0)
         num = spad["numspad"]
-        alpha = spad["pde"] * spad["area"]/(3 * 1.6*10**-19)
-        T     = 1  # observation time... (1 sec)?
-        tau   = spad["deadtime"]
-        counts = num * alpha * T * (L + Ldark) / (1 + alpha * tau * (L+Ldark))
-        asymptote_counts = T * num / tau
+        tau = spad["deadtime"]
+        asymptote_counts = num / tau
         spad["max_count"] = asymptote_counts
         spad["L"] = L
         spad["Ldark"] = Ldark
@@ -161,7 +160,7 @@ def plot_satcurves(spads_all):
         plt.plot(L, counts, c=col, label=spad["name"])
         plt.hlines(asymptote_counts, 0, xmax, color=col, linestyle="--")
     plt.grid()
-    plt.title("Count rate vs intensity of incident light on SiPMs")
+    plt.title("Counts per secpmd vs intensity of incident light on SiPMs")
     plt.legend()
     plt.show()
 
@@ -200,17 +199,23 @@ def main():
     for spad in spads:
         spad["photon_energy"] = constants.h * constants.c / wavelength
 
-
     #for spad in spads:
     #    print("For DR of", print(SEARCH_SPACE[0]), "gbps. Assume 6.2 ppb")
     #    print("Light Intensity Estimate LB=", (1/spad["area"]) * spad["photon_energy"]*6.2*SEARCH_SPACE[0]*10**9)
 
+    cleanspads = []
+    for spad in spads:
+        if "*" in spad["name"]:
+            cleanspads.append(spad)
+
+    spads = cleanspads
 
     process_spads(spads)
     spadtools.spads_to_csv(spads)
     intensity2ppb(spads)
     #plot_performance(spads)
-    plot_satcurves(spads)
+    #plot_satcurves(spads)
+    #check_laser_safety(spads)
     input("Press any Key to Continue...")
 
 

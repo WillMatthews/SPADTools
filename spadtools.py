@@ -98,7 +98,7 @@ def get_sensitivity(spad, T, target_BER, scheme="OOK", custom=False, customcount
         if old_PDE is not None:
             frac_difference = np.abs(PDE_eff - old_PDE) / PDE_eff
             if frac_difference < 10**-10: # changed less than a percent ?
-                intensity = get_intensity(Ns, T, spad)
+                intensity = counts_to_intensity(Ns, T, spad)
                 print(Ns, T, intensity)
                 break
 
@@ -136,18 +136,6 @@ def get_ns0(BER, background, custom=False, customcount=0): #TODO Add Gaussian an
         return customcount
 
 
-def get_intensity(count, T, spad):
-
-    dtmult = spad["numspad"]
-    Ep = spad["photon_energy"]
-    alpha = spad["pde"] * spad["area"]/(Ep*spad["numspad"])
-    Lhat = (1/alpha) * 1/((spad["numspad"] * T / count) - spad["deadtime"]) # L + Ldark
-    #print("INTENSITY:", "dead",spad["deadtime"], "num",spad["numspad"])
-    #print("PDE",spad["pde"], "Ep",spad["photon_energy"],"A",spad["area"])
-    #print(ocount, Lhat, T, Lhat*spad["area"] * oT/Ep)
-    print("Est Pwr Long:", Lhat)
-    print("Est Pwr me:", (1/spad["area"]) * spad["photon_energy"]*count*(1/T))
-    return Lhat #  in watts per metre squared
 
 
 def pickle_to_csv(fin="./.spadcompare.pickle",fout="./csv_out.csv"):
@@ -235,6 +223,10 @@ def get_pwr_penalty(rsb,scheme="OOK"):
         return p1*rsb + p2
 
 
+def get_bandwidth(spad, p):
+    spad["bandwidth"] = -np.log(1-p) / (2 * np.pi * spad["pulsetime"])
+
+
 def get_max_counts(spad):
     #3.13 long thesis
     num = spad["numspad"]
@@ -245,20 +237,31 @@ def get_max_counts(spad):
     spad["max_count"] = asymptote_counts
 
 
-def get_bandwidth(spad, p):
-    spad["bandwidth"] = -np.log(1-p) / (2 * np.pi * spad["pulsetime"])
-
-
 def intensity_to_counts(spad, L, Ldark):
     #3.13 long thesis
     num = spad["numspad"]
-    alpha = spad["pde"] * spad["area"]/Ep
+    Ep = spad["photon_energy"]
+    alpha = spad["pde"] * spad["area"]/(Ep*num)
     T     = 1  # observation time... (1 sec)?
     tau   = spad["deadtime"]
     counts = num * alpha * T * (L + Ldark) / (1 + alpha * tau * (L+Ldark))
     asymptote_counts = T * num / tau
     spad["max_count"] = asymptote_counts
     return counts
+
+
+def counts_to_intensity(count, T, spad):
+    print(T)
+    dtmult = spad["numspad"]
+    Ep = spad["photon_energy"]
+    alpha = spad["pde"] * spad["area"]/(Ep*spad["numspad"])
+    Lhat = (1/alpha) * 1/((spad["numspad"] * T / count) - spad["deadtime"]) # L + Ldark
+    #print("INTENSITY:", "dead",spad["deadtime"], "num",spad["numspad"])
+    #print("PDE",spad["pde"], "Ep",spad["photon_energy"],"A",spad["area"])
+    #print(ocount, Lhat, T, Lhat*spad["area"] * oT/Ep)
+    #print("Est Pwr Long:", Lhat)
+    #print("Est Pwr me:", (1/spad["area"]) * spad["photon_energy"]*count*(1/T))
+    return Lhat #  in watts per metre squared
 
 
 def get_safe_area(illum_area, flux_rx):
