@@ -209,6 +209,7 @@ def check_safety(spads,wl):
     print("=== Testing safety for", wl*1E9,"nm light ===")
     mpe = get_mpe(wl)
     for spad in spads:
+        spad["mpe"] = mpe
         intensity = spad["sensitivity"][0]
         print("\n\nMPE:",mpe,"Wm^-2  have", intensity, "Wm^-2")
         if mpe > intensity:
@@ -240,7 +241,6 @@ def main():
 
     print("Running SPAD datarate optimiser...")
     process_spads(spads)
-    spadtools.spads_to_csv(spads)
 
     print("Getting photons per bit time...")
     intensity2ppb(spads)
@@ -253,6 +253,7 @@ def main():
 
     print("Checking safety...")
     check_safety(spads, wavelength)
+    spadtools.spads_to_csv(spads)
     input("Press any Key to Continue...")
 
 

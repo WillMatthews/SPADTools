@@ -288,6 +288,10 @@ def main():
 
     pps = [get_pwr_penalty(r) for r in rsbs]
     plt.plot(rsbs, pps)
+    plt.title("Power Penalty Curve")
+    plt.xlabel("Rsb")
+    plt.ylabel("Power Penalty")
+    plt.grid()
     plt.show()
 
     print("this file is not to be run directly - please import as use that way")

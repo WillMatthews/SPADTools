@@ -142,8 +142,7 @@ def test():
 
 
 def get_mpe(wl):
-    if wl == 0.405:
-        return(100*1E-2)
+    return(1E-1)
     return wl2mpe(wl*1E6,3*10**4)/(3*10**4)
 
 
