@@ -73,13 +73,13 @@ def get_sensitivity(spad, T, target_BER, scheme="OOK", custom=False, customcount
     Nspad = spad["numspad"]
     tdead = spad["deadtime"]
     rsb = 1 / (T*spad["bandwidth"])
-    print(spad)
+    #print(spad)
 
     # Initialise Variables
     old_PDE = None
     PDE_eff = PDE_max
     itervar = 0
-
+    satcount= 1
     while True:
         itervar += 1
 
@@ -99,12 +99,15 @@ def get_sensitivity(spad, T, target_BER, scheme="OOK", custom=False, customcount
             frac_difference = np.abs(PDE_eff - old_PDE) / PDE_eff
             if frac_difference < 10**-10: # changed less than a percent ?
                 intensity = counts_to_intensity(Ns, T, spad)
-                print(Ns, T, intensity)
+                #print(Ns, T, intensity)
                 break
 
         if is_saturated(Ns, Nb, T, spad):
-            print(itervar, "IS SATURATED, NOT BREAKING")
-            #return None
+            satcount += 1
+            #print(itervar, "IS SATURATED, NOT BREAKING")
+            if satcount > 50:
+                return None
+            return None
 
         old_PDE = PDE_eff
 
@@ -251,7 +254,7 @@ def intensity_to_counts(spad, L, Ldark):
 
 
 def counts_to_intensity(count, T, spad):
-    print(T)
+
     dtmult = spad["numspad"]
     Ep = spad["photon_energy"]
     alpha = spad["pde"] * spad["area"]/(Ep*spad["numspad"])

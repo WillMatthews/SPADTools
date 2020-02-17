@@ -8,7 +8,7 @@ from lasersafety import get_mpe
 
 PLOT_RELATIVE = (False, 1)
 TARGET_BER = 10**-3
-SEARCH_SPACE = [0.5]# np.linspace(0.5, 50, 10000)
+SEARCH_SPACE = [0.5]
 
 print("\n"*8, "{0:.2f}".format(spadtools.get_ns0(TARGET_BER, 0)), "photons typically required at Poisson Limit")
 
@@ -188,6 +188,19 @@ def intensity2ppb(spads):
         #print("SymE = ", symbol_energy_m2)
 
 
+def check_laser_safety(spads,wl):
+    print("=== Testing safety for", wl," light ===")
+    mpe = get_mpe(wl)
+    for spad in spads:
+        intensity = spad["sensitivity"][0]
+        if mpe < intensity:
+            print(spad["name"], "SAFE at", spad["max_data_rate"], "Gbps")
+        else:
+            print(spad["name"], "UNSAFE")
+            multfact = intensity/mpe
+            print("Estimated Safe At:", spad["max_data_rate"]*multfact, "Gbps")
+
+
 def main():
     wavelength = 405E-9
     spads = spadtools.csv_to_spads(fin="./parameters.csv")
@@ -215,7 +228,7 @@ def main():
     intensity2ppb(spads)
     #plot_performance(spads)
     #plot_satcurves(spads)
-    #check_laser_safety(spads)
+    check_laser_safety(spads, wavelength)
     input("Press any Key to Continue...")
 
 

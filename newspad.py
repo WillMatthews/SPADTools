@@ -8,7 +8,7 @@ from lasersafety import get_mpe
 
 PLOT_RELATIVE = (False, 1)
 TARGET_BER = 10**-3
-SEARCH_SPACE = np.linspace(0.1, 500, 100000)
+SEARCH_SPACE = np.linspace(0.01, 500, 100000)
 
 print("\n"*8, "{0:.2f}".format(spadtools.get_ns0(TARGET_BER, 0)), "photons typically required at Poisson Limit")
 
@@ -34,6 +34,7 @@ def process_spads(spads):
                     print('{0:.2f}'.format(numgig), "Gbps...", "{0:.2f}".format(old_sensitivity[1][1]),"photons per bit one")
                     spad["max_data_rate"] = numgig
                     spad["sensitivity"] = old_sensitivity
+                    print(spad["sensitivity"])
                 else:
                     print("Data Rate <", min(SEARCH_SPACE),"Gbps")
                 break
@@ -146,16 +147,15 @@ def Bseries():
 def plot_satcurves(spads_all):
     plt.figure()
     Ldark = 0 # assume perfect zero dark count
-    xmax = 10**-5
+    xmax = 10**1
     L = np.linspace(0, xmax, 10000)
+    Ldark = 0
     for i, spad in enumerate(spads_all):
         ## 3.13 long thesis
+        counts = spadtools.intensity_to_counts(spad,L,0)
         num = spad["numspad"]
-        alpha = spad["pde"] * spad["area"]/(3 * 1.6*10**-19)
-        T     = 1  # observation time... (1 sec)?
-        tau   = spad["deadtime"]
-        counts = num * alpha * T * (L + Ldark) / (1 + alpha * tau * (L+Ldark))
-        asymptote_counts = T * num / tau
+        tau = spad["deadtime"]
+        asymptote_counts = num / tau
         spad["max_count"] = asymptote_counts
         spad["L"] = L
         spad["Ldark"] = Ldark
@@ -164,24 +164,45 @@ def plot_satcurves(spads_all):
         plt.plot(L, counts, c=col, label=spad["name"])
         plt.hlines(asymptote_counts, 0, xmax, color=col, linestyle="--")
     plt.grid()
-    plt.title("Count rate vs intensity of incident light on SiPMs")
+    plt.title("Counts per secpmd vs intensity of incident light on SiPMs")
     plt.legend()
     plt.show()
 
 
 def intensity2ppb(spads):
     for spad in spads:
+        if spad["sensitivity"] is None:
+            continue
         area = spad["area"]
-        symbol_energy_m2 = spad["sensitivity"][0]
+        symbol_time = 1/(spad["max_data_rate"]*10**9)
+
         photons_per_bit = spad["sensitivity"][1][1]
         photon_energy = spad["photon_energy"]
-        symbol_time = 1/(spad["max_data_rate"]*10**9)
-        watts_per_metresq = (1/symbol_time) * symbol_energy_m2
-        photons_per_metresq = (1/symbol_time) * symbol_energy_m2/photon_energy
+        watts_per_metresq = spad["sensitivity"][0]
+        symbol_energy_m2 = watts_per_metresq * area
+        photons_per_metresq = symbol_time * symbol_energy_m2/photon_energy
 
-        #print(spad["name"], "\t", watts_per_metresq*1E9*(1E-4) , "nW/cm2\t", photons_per_metresq, "photons per msq per symbol time")
-        print(spad["name"], "\t", "{:.4e}".format(watts_per_metresq*1E3*(1E-4)) , "mW/cm2\t", symbol_energy_m2/photon_energy*spad["area"], "photons per msq per symbol time")
-        #print("Ep = ", photon_energy, "\t\tTs = ", symbol_time)
+
+        print(spad["name"], "\t", "{:.4e}".format(watts_per_metresq*1E9*(1E-4)) , "nW/cm2\t", photons_per_metresq, "photons landing on spad per symbol time")
+        print(spad["name"], "\t", "{:.4e}".format(watts_per_metresq), "Wm^-2")
+        print(spad["sensitivity"])
+        #print("SymE = ", symbol_energy_m2)
+
+
+def check_safety(spads,wl):
+    print("=== Testing safety for", wl," light ===")
+    mpe = get_mpe(wl)
+    for spad in spads:
+        intensity = spad["sensitivity"][0]
+        print("\n\nMPE:",mpe,"Wm^-2  have", intensity, "Wm^-2")
+        if mpe > intensity:
+            print(spad["name"], "SAFE at", spad["max_data_rate"], "Gbps")
+            print(intensity, "Wm^-2")
+        else:
+            print(spad["name"], "UNSAFE")
+            multfact = mpe/intensity
+            print("Estimated Safe At:", spad["max_data_rate"]*multfact, "Gbps")
+            print(intensity, "Wm^-2")
 
 
 def main():
@@ -194,11 +215,21 @@ def main():
     for spad in spads:
         spad["photon_energy"] = constants.h * constants.c / wavelength
 
+    print("Running SPAD datarate optimiser...")
     process_spads(spads)
     spadtools.spads_to_csv(spads)
+
+    print("Getting photons per bit time...")
     intensity2ppb(spads)
+
+    print("Plotting  Performance...")
     plot_performance(spads)
+
+    print("Plotting Saturation Curves...")
     plot_satcurves(spads)
+
+    print("Checking safety...")
+    check_safety(spads, wavelength)
     input("Press any Key to Continue...")
 
 
