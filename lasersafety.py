@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# https://onlinelibrary.wiley.com/doi/pdf/10.1002/9781118688977.app1
+
 def wl2mpe(wl, t):
     T1, CA, CC = 1000000, 1000000, 1000000
     T1 = 10*10**(20*(wl-0.450))
@@ -128,9 +130,13 @@ def test():
     wls = np.linspace(0.18, 1, 100000)
     plt.figure()
     for t in ts:
-
         mpes = [wl2mpe(wl, t) for wl in wls]
         plt.plot(wls, mpes)
+
+    plt.grid()
+    plt.ylabel("Light Intensity Wm^-2")
+    plt.xlabel("Wavelength/um")
+    plt.title("MPE for 8 hour exposure")
 
     plt.show()
 
@@ -139,3 +145,12 @@ def get_mpe(wl):
     if wl == 0.405:
         return(100*1E-2)
     return wl2mpe(wl*1E6,3*10**4)/(3*10**4)
+
+
+def main():
+    test()
+    print("this file is not to be run directly - please import as use that way")
+
+
+if __name__ == "__main__":
+    main()

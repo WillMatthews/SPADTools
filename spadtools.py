@@ -122,7 +122,8 @@ def get_background(PDE_eff, FF, T, A):
 
 def get_ns0(BER, background, custom=False, customcount=0): #TODO Add Gaussian and Poisson models.
     if background > 0.01:
-        print("Background count high!! Exercise caution with result")
+        pass
+        #print("Background count high!! Exercise caution with result")
     return - np.log(2 * BER)
 
     if not custom:
@@ -282,8 +283,7 @@ def get_safe_area(illum_area, flux_rx):
     return tx_area
 
 
-if __name__ == "__main__":
-
+def main():
     rsbs = np.linspace(0, 10, 1000)
 
     pps = [get_pwr_penalty(r) for r in rsbs]
@@ -291,4 +291,7 @@ if __name__ == "__main__":
     plt.show()
 
     print("this file is not to be run directly - please import as use that way")
-    exit()
+
+
+if __name__ == "__main__":
+    main()

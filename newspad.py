@@ -8,9 +8,11 @@ from lasersafety import get_mpe
 
 PLOT_RELATIVE = (False, 1)
 TARGET_BER = 10**-3
-SEARCH_SPACE = np.linspace(0.01, 500, 100000)
+sparse_space = np.linspace(0.1, 500, 500000)
+fine_space = np.linspace(1E-6,0.1, 1000)
+SEARCH_SPACE = np.concatenate([fine_space,sparse_space])
 
-print("\n"*8, "{0:.2f}".format(spadtools.get_ns0(TARGET_BER, 0)), "photons typically required at Poisson Limit")
+print("\n"*3, "{0:.2f}".format(spadtools.get_ns0(TARGET_BER, 0)), "photons typically required at Poisson Limit")
 
 
 def process_spads(spads):
@@ -40,6 +42,20 @@ def process_spads(spads):
                 break
         else:
             print("Data Rate >", max(SEARCH_SPACE),"Gbps")
+
+
+def get_mpe_safe_rate(spad, mpe):
+    spad["max_safe_data_rate"] = None
+    spad["safe_sensitivity"] = None
+    for numgig in SEARCH_SPACE:
+        symbol_time = 1 / (numgig * 10**9) # 10Gbps
+        old_sensitivity = spad["safe_sensitivity"]
+        spad["safe_sensitivity"] = spadtools.get_sensitivity(spad, symbol_time, TARGET_BER)
+        if spad["safe_sensitivity"][0] > mpe:
+            if old_sensitivity is not None:
+                spad["max_safe_data_rate"] = numgig
+                spad["safe_sensitivity"] = old_sensitivity
+            break
 
 
 def plot_performance(spads):
@@ -190,7 +206,7 @@ def intensity2ppb(spads):
 
 
 def check_safety(spads,wl):
-    print("=== Testing safety for", wl," light ===")
+    print("=== Testing safety for", wl*1E9,"nm light ===")
     mpe = get_mpe(wl)
     for spad in spads:
         intensity = spad["sensitivity"][0]
@@ -200,9 +216,9 @@ def check_safety(spads,wl):
             print(intensity, "Wm^-2")
         else:
             print(spad["name"], "UNSAFE")
-            multfact = mpe/intensity
-            print("Estimated Safe At:", spad["max_data_rate"]*multfact, "Gbps")
-            print(intensity, "Wm^-2")
+            get_mpe_safe_rate(spad, mpe)
+            print("Estimated Safe At:", spad["max_safe_data_rate"], "Gbps")
+            print(spad["safe_sensitivity"][0], "Wm^-2")
 
 
 def main():
@@ -214,6 +230,13 @@ def main():
 
     for spad in spads:
         spad["photon_energy"] = constants.h * constants.c / wavelength
+
+    owned_spads = []
+    for spad in spads:
+        if "*" in spad["name"]:
+            owned_spads.append(spad)
+
+    spads = owned_spads
 
     print("Running SPAD datarate optimiser...")
     process_spads(spads)

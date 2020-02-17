@@ -36,8 +36,6 @@ def process_spads(spads):
             print("Not Possible")
 
 
-
-
 def plot_performance(spads):
     hackrates, realrates = [], []
     names = []
